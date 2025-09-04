@@ -106,14 +106,47 @@ class MaskingApp:
 
         # 複数のマスキング範囲を順番に適用
         for page in doc:
+            #縦横を取得
+            page_width, page_height = page.rect.width, page.rect.height
+            rotation = page.rotation  # ページの回転角（0, 90, 180, 270）
+
             for mask in self.mask_coords:
                 x0, y0, x1, y1 = mask
-                page_width, page_height = page.rect.width, page.rect.height
+               # page_width, page_height = page.rect.width, page.rect.height 変更
                 scale_x = page_width / self.page_image.width
                 scale_y = page_height / self.page_image.height
 
                 # GUI上の座標をPDF座標に変換
-                rect = fitz.Rect(x0 * scale_x, y0 * scale_y, x1 * scale_x, y1 * scale_y)
+                #rect = fitz.Rect(x0 * scale_x, y0 * scale_y, x1 * scale_x, y1 * scale_y) 変更
+                # 回転角に応じてマスキング範囲を変換
+                if rotation == 90:
+                    rect = fitz.Rect(
+                        y0 * scale_y,
+                        page_width - x1 * scale_x,
+                        y1 * scale_y,
+                        page_width - x0 * scale_x
+                )
+                elif rotation == 270:
+                    rect = fitz.Rect(
+                        page_height - y1 * scale_y,
+                        x0 * scale_x,
+                        page_height - y0 * scale_y,
+                        x1 * scale_x
+                )
+                elif rotation == 180:
+                    rect = fitz.Rect(
+                        page_width - x1 * scale_x,
+                        page_height - y1 * scale_y,
+                        page_width - x0 * scale_x,
+                        page_height - y0 * scale_y
+                )
+                else:  # rotation == 0
+                    rect = fitz.Rect(
+                        x0 * scale_x,
+                        y0 * scale_y,
+                        x1 * scale_x,
+                        y1 * scale_y
+                )
 
                 # 削除アノテーションを追加（マスキング）
                 page.add_redact_annot(rect, fill=(0, 0, 0))  # ここで黒色に設定
@@ -122,7 +155,8 @@ class MaskingApp:
             page.apply_redactions()
 
         # 新しいPDFを保存
-        doc.save(output_path)
+        #doc.save(output_path) 変更
+        doc.save(output_path, garbage=4, deflate=True)  #圧縮追加
 
 if __name__ == "__main__":
     root = tk.Tk()
